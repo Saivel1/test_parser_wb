@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 ### CONFIG
-HEADERS: dict = {}
+HEADERS: dict = {"Cookie": ""}
 SEMAPHORES: int = 15
 query = "пальто из натуральной шерсти"
 JSON_FILE = "res.json"
@@ -74,7 +74,8 @@ class ResData(BaseModel):
     article_link: str = ""
 
     seller_name: str = Field(validation_alias="supplier")
-    seller_link: int | str = Field(validation_alias="supplierId")
+    brandId: int | None = None
+    seller_link: str = ""
 
     name: str
     sizes: list[dict] = Field(default_factory=list)
@@ -88,7 +89,8 @@ class ResData(BaseModel):
     @model_validator(mode="after")
     def generate_links(self) -> "ResData":
         self.article_link = f"https://www.wildberries.ru/catalog/{self.article}/detail.aspx"
-        self.seller_link = f"https://www.wildberries.ru/brands/{self.seller_link}"
+        if self.brandId:
+            self.seller_link = f"https://www.wildberries.ru/brands/{self.brandId}"
         return self
 
     @model_validator(mode="after")
@@ -205,7 +207,7 @@ async def get_card(
                 print(e.json())
                 return
 
-        model_a_json: dict = model_a.model_dump(exclude={"sizes"})
+        model_a_json: dict = model_a.model_dump(exclude={"sizes", "brandId"})
         model_b_json: dict = model_b.model_dump(exclude={"link", "pic_cnt", "options", "media"})
 
         model_a_json.update(model_b_json)
